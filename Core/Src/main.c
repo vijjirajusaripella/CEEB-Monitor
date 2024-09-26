@@ -126,55 +126,37 @@ int32_t twosComplementToDecimal(uint8_t b4, uint8_t b5, uint8_t b6, uint8_t b7)
         return binaryValue;  // Positive number, no conversion needed
     }
 }
-
-
-
+// This function is called whenever there is a CAN Message in the FIFO
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-    if (bufferIndex < CAN_BUFFER_SIZE)
-    {
-        HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &(canBuffer[bufferIndex].header), canBuffer[bufferIndex].data);
-
-        // Check if the current ID is one of the IDs you are interested in (0x112, 0x122, 0x142)
-        if (canBuffer[bufferIndex].header.StdId == 0x112 ||
-            canBuffer[bufferIndex].header.StdId == 0x122 ||
-            canBuffer[bufferIndex].header.StdId == 0x142)
-        {
-            // Prioritize messages based on cycle time
-            uint8_t index = canBuffer[bufferIndex].header.StdId == 0x112 ? 0 :
-                            canBuffer[bufferIndex].header.StdId == 0x122 ? 1 : 2;
-
-            bufferIndexForIds[index]++;
-        }
-
-        bufferIndex++;
-    }
-    else
-    {
+	if (bufferIndex >= CAN_BUFFER_SIZE) {
         // Buffer is full, overwrite the oldest message
-        bufferIndex = 0;
+		bufferIndex = 0;
+	}
 
-        // Copy the new message into the buffer
-        HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &(canBuffer[bufferIndex].header), canBuffer[bufferIndex].data);
+	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &(canBuffer[bufferIndex].header), canBuffer[bufferIndex].data);
 
-        // Check if the current ID is one of the IDs you are interested in (0x112, 0x122, 0x142)
-        if (canBuffer[bufferIndex].header.StdId == 0x112 ||
-            canBuffer[bufferIndex].header.StdId == 0x122 ||
-            canBuffer[bufferIndex].header.StdId == 0x142)
-        {
-            // Prioritize messages based on cycle time
-            uint8_t index = canBuffer[bufferIndex].header.StdId == 0x112 ? 0 :
-                            canBuffer[bufferIndex].header.StdId == 0x122 ? 1 : 2;
+	// Check if the current ID is one of the IDs you are interested in (0x112, 0x122, 0x142)
+	if (canBuffer[bufferIndex].header.StdId == 0x112 ||
+			canBuffer[bufferIndex].header.StdId == 0x122 ||
+			canBuffer[bufferIndex].header.StdId == 0x142)
+	{
+		// Prioritize messages based on cycle time
+		uint8_t index = canBuffer[bufferIndex].header.StdId == 0x112 ? 0 :
+				canBuffer[bufferIndex].header.StdId == 0x122 ? 1 : 2;
 
-            bufferIndexForIds[index]++;
-        }
+		bufferIndexForIds[index]++;
+	}
 
-        bufferIndex++;
-    }
+	bufferIndex++;
     // Update the last CAN message time
     lastCANMessageTime = HAL_GetTick();
 
 }
+// This Interrupt will be called when you press push button to awake or sleep the BMS.
+
+
+
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
